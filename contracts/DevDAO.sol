@@ -1,4 +1,18 @@
+/*
+1. Complete implementation of prototype. 
+	1a. killswitches 
+  		1. Token holder can force refund with existing funds with super-majority (90%)
+      2. Board members can force refund with iff all agree 
+  1b. (paused) non-transferable tokens with voting power that doesn't actually result in funds being sent yet
+2. White paper with the full final spec and info
+3. ReimplemenTation with unit tests first, contract, and web based app
+3a. Web app includes support for hardware device signing (OMG VUE2) (probably will want to fork MEW for that)
+
+We want pausable tokens, intially non-transferable --> Use open zepplin contract
+*/
+
 pragma solidity ^0.4.17;
+
 
 contract DevDao {
 
@@ -12,7 +26,7 @@ contract DevDao {
     struct BoardMember {
         BoardMemberSubstitutionVote boardMemberSubstitutionVote;
         address votedCustodian;
-        address escapeHatchAddress;
+        address MigrationAddress;
     }
 
         // state
@@ -29,8 +43,8 @@ contract DevDao {
 
         // modifiers
 
-    // ensure that callers are BoardMembers
-    modifier onlyBoardMembers() {
+
+    function isCallerBoardMember() public returns (bool) {
         bool foundAddress = false;
         for (uint i = 0; i < boardMembersAddresses.length; i++) {
             if (msg.sender == boardMembersAddresses[i]) {
@@ -38,7 +52,13 @@ contract DevDao {
                 break;
             }
         }
-        if (foundAddress) {
+        return foundAddress;
+    }
+
+    // ensure that callers are BoardMembers
+    modifier onlyBoardMembers() {
+        bool callerIsBoardMember = isCallerBoardMember();
+        if (callerIsBoardMember) {
             _;
         } else {
             revert();
@@ -93,7 +113,8 @@ contract DevDao {
             var boardMember = boardMembersMap[boardMembersAddresses[i]];
             if (custodianVotes[boardMember.votedCustodian] == 0) {
                 custodianVotes[boardMember.votedCustodian] = 1;
-            } else { // custodian address key already exists in mapping
+            // custodian address key already exists in mapping
+            } else {
                 // increment vote by 1
                 custodianVotes[boardMember.votedCustodian] += 1;
                 // if (at least) 5 board members are voting for this custodian and the caller matches the voted for address, continue
@@ -133,6 +154,12 @@ contract DevDao {
 
         clearReplacementBoardMemberVotes(existingBoardMemberToReplaceArray, replacementBoardMemberAddressArray);
         return (false, address(0x0));
+    }
+
+    // called by setMigrationAddress
+    function executeMigration() public {
+        // Check if all board members are voting for a specific address.
+        // If so, Send all funds to address
     }
 
     function replaceBoardMemberFromMap(address curBoardMember, address replacementBoardMemberAddress) private {
@@ -177,19 +204,16 @@ contract DevDao {
     }
 
     // set an escape hatch address for a board member
-    function setEscapeHatchAddress(address escapeHatchAddress) public onlyBoardMembers {
+    function setMigrationAddress(address MigrationAddress) public onlyBoardMembers {
         // set the board-member (modifier enforced) caller's escape hatch address
-        boardMembersMap[msg.sender].escapeHatchAddress = escapeHatchAddress;
-    }
+        boardMembersMap[msg.sender].MigrationAddress = MigrationAddress;
+    }s
 
     function sendFunds(address toAddress, uint weiAmount) public onlyCustodian {
         // send locked with maxPercentWithdrawalPerDay of total funds 
-    }
-    
-    // called by setEscapeHatchAddress
-    function executeEscapeHatch() public {
-        // Check if all board members are voting for a specific address.
-        // If so, Send all funds to address
+        if (toAddress.call.value(weiAmount)()) {
+            revert();
+        }
     }
 
     // allow funds to be sent to contract

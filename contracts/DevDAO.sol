@@ -16,7 +16,12 @@ pragma solidity ^0.4.17;
 
 contract DevDao {
 
+  //  enum State { 
+
+   // }
         // structs
+    address currentCustodian;
+    mapping(address => int) private custodianVotes;
 
     struct BoardMemberSubstitutionVote {
         address currentBoardMember;
@@ -25,8 +30,8 @@ contract DevDao {
 
     struct BoardMember {
         BoardMemberSubstitutionVote boardMemberSubstitutionVote;
-        address votedCustodian;
-        address MigrationAddress;
+        address votedCustodian; // 
+        address migrationAddress;
     }
 
         // state
@@ -35,25 +40,14 @@ contract DevDao {
     mapping (address => BoardMember) private boardMembersMap;
     address[] private boardMembersAddresses;
     // sets the max cap that the custodian can direct per day
-    uint private maxPercentWithdrawalPerDay = 1;
-    // only used by onlyCustodian
-    mapping (address => uint) private custodianVotes;
+        // uint private maxPercentWithdrawalPerDay = 1;
+
+
     // only used by determineBlahBlah
     mapping (address => mapping(address => uint)) private replacementBoardMemberVotes;
 
         // modifiers
 
-
-    function isCallerBoardMember() public returns (bool) {
-        bool foundAddress = false;
-        for (uint i = 0; i < boardMembersAddresses.length; i++) {
-            if (msg.sender == boardMembersAddresses[i]) {
-                foundAddress = true;
-                break;
-            }
-        }
-        return foundAddress;
-    }
 
     // ensure that callers are BoardMembers
     modifier onlyBoardMembers() {
@@ -67,8 +61,7 @@ contract DevDao {
 
     // ensure that caller is Custodian. Computed by consensus (5 of 7) custodian implied by current BoardMembers state
     modifier onlyCustodian() {
-        address computedCustodian = getCustodian();
-        if (msg.sender == computedCustodian) {
+        if (msg.sender == currentCustodian) {
             _;
         } else {
             revert();
@@ -81,8 +74,8 @@ contract DevDao {
     function DevDao(address[] initialBoardMembers) public {
         if (initialBoardMembers.length == 7) {
             boardMembersAddresses = initialBoardMembers;
-            for (uint i = 0; i < initialBoardMembers.length; i++) {
-                BoardMember boardMember;
+            for (uint i = 0; i < initialBoardMembers.length; i++) { //Check if this is needed
+                BoardMember memory boardMember;
                 boardMembersMap[initialBoardMembers[i]] = boardMember;
             }
         } else {
@@ -90,42 +83,39 @@ contract DevDao {
         }
     }
 
-    function clearCustodianVotes() private {
-        for (uint i = 0; i < boardMembersAddresses.length; i++) {
-            delete custodianVotes[boardMembersAddresses[i]];
-        }
-    } 
 
-    function clearReplacementBoardMemberVotes(address[] existingBoardMemberToReplaceArray, address[] replacementBoardMemberAddressArray) private {
-        for (uint i = 0; i < existingBoardMemberToReplaceArray.length; i++) {
-            for (uint e = 0; e < replacementBoardMemberAddressArray.length; e++) {
-                var existingAddress = existingBoardMemberToReplaceArray[i];
-                var replacementAddress = replacementBoardMemberAddressArray[e];
-                delete replacementBoardMemberVotes[existingAddress][replacementAddress];
+    function isCallerBoardMember() public returns (bool) {
+        bool addressFound = false;
+        for (uint i = 0; i < boardMembersAddresses.length; i++) {
+            if (msg.sender == boardMembersAddresses[i]) {
+                addressFound = true;
+                break;
             }
         }
-    } 
+        return addressFound;
+    }
 
     // return current custodian
+    // Note: Could be contract or externally owned account
     function getCustodian() public returns (address) {
         for (uint i = 0; i < boardMembersAddresses.length; i++) {
             // custodian address key does not exist in mapping
-            var boardMember = boardMembersMap[boardMembersAddresses[i]];
-            if (custodianVotes[boardMember.votedCustodian] == 0) {
-                custodianVotes[boardMember.votedCustodian] = 1;
+            BoardMember storage b = boardMembersMap[boardMembersAddresses[i]];
+            if (custodianVotes[b.votedCustodian] == 0) {
+                custodianVotes[b.votedCustodian] = 1;
             // custodian address key already exists in mapping
             } else {
                 // increment vote by 1
-                custodianVotes[boardMember.votedCustodian] += 1;
+                custodianVotes[b.votedCustodian] += 1;
                 // if (at least) 5 board members are voting for this custodian and the caller matches the voted for address, continue
-                if (custodianVotes[boardMember.votedCustodian] == 5) {
+                if (custodianVotes[b.votedCustodian] == 5) {
                     clearCustodianVotes();
-                    return boardMember.votedCustodian;
+                    return b.votedCustodian;
                 }
             }
         }
         clearCustodianVotes();
-        revert();
+        return address(0);
     }
 
     function determineIfBoardMemberIsVotedOut(address boardMember) public returns (bool, address) {
@@ -134,10 +124,11 @@ contract DevDao {
         address[] memory replacementBoardMemberAddressArray;
 
         for (uint i = 0; i < boardMembersAddresses.length; i++) {
-            var curBoardMember = boardMembersMap[boardMembersAddresses[i]];
+            BoardMemberSubstitutionVote storage curSubVote = boardMembersMap[boardMembersAddresses[i]].boardMemberSubstitutionVote;
 
-            var existingBoardMemberToReplace = curBoardMember.boardMemberSubstitutionVote.currentBoardMember;
-            var replacementBoardMemberAddress = curBoardMember.boardMemberSubstitutionVote.replacementBoardMember;
+            address existingBoardMemberToReplace = curSubVote.currentBoardMember;
+            address replacementBoardMemberAddress = curSubVote.replacementBoardMember;
+
             existingBoardMemberToReplaceArray[i] = existingBoardMemberToReplace;
             replacementBoardMemberAddressArray[i] = replacementBoardMemberAddress;
 
@@ -156,17 +147,66 @@ contract DevDao {
         return (false, address(0x0));
     }
 
+
+    // modify boardMemberConfigurationsMap state with desired custodian.
+    function setCustodianVote(address newCustodian) public onlyBoardMembers {
+        boardMembersMap[msg.sender].votedCustodian = newCustodian;
+        currentCustodian = getCustodian();
+    }
+
+    // sets caller state to reflect vote for new board member
+    function setReplacementBoardMember(address currentBoardMember, address replacementBoardMember) public onlyBoardMembers {
+        // set the board-member (modifier enforced) caller's vote for a replacement board member
+        BoardMemberSubstitutionVote memory boardMemberSubstitutionVote;
+        boardMemberSubstitutionVote.currentBoardMember = currentBoardMember;
+        boardMemberSubstitutionVote.replacementBoardMember = replacementBoardMember;
+        boardMembersMap[msg.sender].boardMemberSubstitutionVote = boardMemberSubstitutionVote;
+        replaceBoardMember(currentBoardMember);
+    }
+
+    // set an escape hatch address for a board member
+    function setMigrationAddress(address migrationAddress) public onlyBoardMembers {
+        // set the board-member (modifier enforced) caller's escape hatch address
+        boardMembersMap[msg.sender].migrationAddress = migrationAddress;
+    }
+
+    function sendFunds(address toAddress, uint weiAmount) public onlyCustodian {
+        // send locked with maxPercentWithdrawalPerDay of total funds 
+        if (toAddress.call.value(weiAmount)()) {
+            revert();
+        }
+    }
+
+
     // called by setMigrationAddress
     function executeMigration() public {
         // Check if all board members are voting for a specific address.
         // If so, Send all funds to address
     }
 
+
+    function clearCustodianVotes() private {
+        for (uint i = 0; i < boardMembersAddresses.length; i++) {
+            delete custodianVotes[boardMembersAddresses[i]];
+        }
+    } 
+
+    function clearReplacementBoardMemberVotes(address[] existingBoardMemberToReplaceArray, address[] replacementBoardMemberAddressArray) private {
+        for (uint i = 0; i < existingBoardMemberToReplaceArray.length; i++) {
+            for (uint e = 0; e < replacementBoardMemberAddressArray.length; e++) {
+                address existingAddress = existingBoardMemberToReplaceArray[i];
+                address replacementAddress = replacementBoardMemberAddressArray[e];
+                delete replacementBoardMemberVotes[existingAddress][replacementAddress];
+            }
+        }
+    } 
+
+
     function replaceBoardMemberFromMap(address curBoardMember, address replacementBoardMemberAddress) private {
         // delete and replace existing key/value from map
         delete boardMembersMap[curBoardMember];
-        BoardMember newBoardMember;
-        boardMembersMap[replacementBoardMemberAddress] = newBoardMember;
+        BoardMember memory newBoardMember;
+        boardMembersMap[replacementBoardMemberAddress] = newBoardMember; //Check if this is needed
     }
 
     function replaceBoardMemberFromArray(address curBoardMember, address replacementBoardMemberAddress) private {
@@ -188,33 +228,6 @@ contract DevDao {
         }
     }
 
-    // modify boardMemberConfigurationsMap state with desired custodian.
-    function setCustodianVote(address newCustodian) public onlyBoardMembers {
-        boardMembersMap[msg.sender].votedCustodian = newCustodian;
-    }
-
-    // sets caller state to reflect vote for new board member
-    function setReplacementBoardMember(address currentBoardMember, address replacementBoardMember) public onlyBoardMembers {
-        // set the board-member (modifier enforced) caller's vote for a replacement board member
-        BoardMemberSubstitutionVote boardMemberSubstitutionVote;
-        boardMemberSubstitutionVote.currentBoardMember = currentBoardMember;
-        boardMemberSubstitutionVote.replacementBoardMember = replacementBoardMember;
-        boardMembersMap[msg.sender].boardMemberSubstitutionVote = boardMemberSubstitutionVote;
-        replaceBoardMember(currentBoardMember);
-    }
-
-    // set an escape hatch address for a board member
-    function setMigrationAddress(address MigrationAddress) public onlyBoardMembers {
-        // set the board-member (modifier enforced) caller's escape hatch address
-        boardMembersMap[msg.sender].MigrationAddress = MigrationAddress;
-    }s
-
-    function sendFunds(address toAddress, uint weiAmount) public onlyCustodian {
-        // send locked with maxPercentWithdrawalPerDay of total funds 
-        if (toAddress.call.value(weiAmount)()) {
-            revert();
-        }
-    }
 
     // allow funds to be sent to contract
     function() public payable {}

@@ -11,7 +11,7 @@
 We want pausable tokens, intially non-transferable --> Use open zepplin contract
 */
 
-pragma solidity ^0.4.17;
+pragma solidity ^0.4.15; // 17
 
 
 contract DevDao {

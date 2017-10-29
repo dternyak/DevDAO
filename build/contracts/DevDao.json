@@ -1,0 +1,87 @@
+[
+  {
+    "constant": false,
+    "inputs": [{ "name": "boardMember", "type": "address" }],
+    "name": "determineIfBoardMemberIsVotedOut",
+    "outputs": [{ "name": "", "type": "bool" }, { "name": "", "type": "address" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [{ "name": "newCustodian", "type": "address" }],
+    "name": "setCustodianVote",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [{ "name": "migrationAddress", "type": "address" }],
+    "name": "setMigrationAddress",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "isCallerBoardMember",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      { "name": "toAddress", "type": "address" },
+      { "name": "weiAmount", "type": "uint256" }
+    ],
+    "name": "sendFunds",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "getCustodian",
+    "outputs": [{ "name": "", "type": "address" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "executeMigration",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      { "name": "currentBoardMember", "type": "address" },
+      { "name": "replacementBoardMember", "type": "address" }
+    ],
+    "name": "setReplacementBoardMember",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "initialBoardMembers", "type": "address[]" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  { "payable": true, "stateMutability": "payable", "type": "fallback" }
+]

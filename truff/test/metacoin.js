@@ -1,4 +1,3 @@
-/*
 var MetaCoin = artifacts.require("./MetaCoin.sol");
 
 contract('MetaCoin', function(accounts) {
@@ -62,4 +61,3 @@ contract('MetaCoin', function(accounts) {
     });
   });
 });
-*/

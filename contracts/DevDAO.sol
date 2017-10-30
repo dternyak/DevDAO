@@ -46,6 +46,17 @@ contract DevDao {
     // only used by determineBlahBlah
     mapping (address => mapping(address => uint)) private replacementBoardMemberVotes;
 
+
+        // getters
+
+    function getBoardMembersAddresses() public returns (address[]) {
+        return boardMembersAddresses;
+    }
+
+    function getCurrentCustodian() public returns (address) {
+        return currentCustodian;
+    }
+
         // modifiers
 
 

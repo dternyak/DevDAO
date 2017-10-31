@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "module": "umd",
+    "target": "es2015",
+    "allowJs": true,
+    "baseUrl": "./src/",
+    "lib": ["es2017", "dom"],
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "noEmitOnError": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["./typings/", "./src"]
+}
